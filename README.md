@@ -1,4 +1,4 @@
-# Linz Netz AppDaemon
+# Linz Netz -> AppDaemon -> HomeAssistant
 
 **AppDaemon** app that parses energy consumption reports of **Linz Netz** (energy supplier in Upper Austria) and forwards the daily consumption to **HomeAssistant**.
 
