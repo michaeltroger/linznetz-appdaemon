@@ -1,6 +1,6 @@
 # Linz Netz AppDaemon
 
-**AppDaemon** app to parse energy consumption reports of **Linz Netz** (energy supplier in Upper Austria) and to further provide the data to **HomeAssistant**.
+**AppDaemon** app that parses energy consumption reports of **Linz Netz** (energy supplier in Upper Austria) and forwards the daily consumption to **HomeAssistant**.
 
 Pre setup needed:
 - Linz Strom smart meter
