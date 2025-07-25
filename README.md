@@ -17,7 +17,7 @@ It works as follows:
 - marks the email as read
 
 Known issues:
-- The emails only include data of the previous day. Home Assistant doesn't understand this fact and shows yesterday's data as today's data
+- The emails only include data of the day before yesterday. Home Assistant therefore shows 2 day old data as today's data
 
 Setup in AppDaemon:
 Copy `energyconsumption.py` to `conf/apps` and register the app in `apps.yaml` of the same directory:
