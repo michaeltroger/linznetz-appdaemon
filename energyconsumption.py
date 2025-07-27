@@ -20,32 +20,33 @@ class EnergyConsumption(hass.Hass):
             msg = email.message_from_bytes(msg_data[0][1])
             self.log(f"Subject: {str(make_header(decode_header(msg['Subject'])))}")
             for part in msg.walk():
-                ct = part.get_content_maintype()
-                if part.get_filename() and part.get_filename().lower().endswith(".csv"):
-                    self.log("found csv")
-                    self.log(f"Filename: {part.get_filename()}")
-                    body = part.get_payload(decode=True)
-                    reader = csv.DictReader(io.StringIO(body.decode()), delimiter=";")
-                    total = 0.0
-                    for row in reader:
-                        try:
-                            value = row["Energiemenge in kWh"].replace(",", ".")
-                            total += float(value)
-                        except (IndexError, ValueError):
-                            self.log(f"Skipping invalid row: {row}")
-                            continue
-                    self.log(f"Total consumption = {total}")
-                    self.call_service(
-                        "input_number/set_value",
-                        entity_id = "input_number.daily_energy",
-                        value = total
-                    )
-                    self.log("resetting sensor again")
-                    self.call_service(
-                        "input_number/set_value",
-                        entity_id = "input_number.daily_energy",
-                        value = 0
-                    )
+                filename = part.get_filename()
+                if not filename or not filename.lower().endswith(".csv"):
+                    continue
+                self.log("found csv")
+                self.log(f"Filename: {filename}")
+                body = part.get_payload(decode=True)
+                reader = csv.DictReader(io.StringIO(body.decode()), delimiter=";")
+                total = 0.0
+                for row in reader:
+                    try:
+                        value = row["Energiemenge in kWh"].replace(",", ".")
+                        total += float(value)
+                    except (IndexError, ValueError):
+                        self.log(f"Skipping invalid row: {row}")
+                        continue
+                self.log(f"Total consumption = {total}")
+                self.call_service(
+                    "input_number/set_value",
+                    entity_id = "input_number.daily_energy",
+                    value = total
+                )
+                self.log("resetting sensor again")
+                self.call_service(
+                    "input_number/set_value",
+                    entity_id = "input_number.daily_energy",
+                    value = 0
+                )
             mail.store(num, '+FLAGS', '\\Seen')
         mail.logout()
         self.log("completed")
