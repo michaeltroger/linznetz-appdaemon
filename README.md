@@ -47,20 +47,4 @@ input_number:
     mode: box
 ```
 
-`automations.yaml`
-```
-- alias: Reset Daily Energy at Midnight
-  description: Reset the daily_energy input number to 0 at midnight
-  trigger:
-    - platform: time
-      at: "00:00:00"
-  action:
-    - service: input_number.set_value
-      target:
-        entity_id: input_number.daily_energy
-      data:
-        value: 0
-  mode: single
-
-```
 You can further process the data from here. E.g. setting the input number as state input for a template sensor.
