@@ -1,24 +1,38 @@
 import imaplib, email, io, csv
 import hassapi as hass
+import requests
 from email.header import decode_header, make_header
+
+IMAP_SERVER = "imap.gmail.com"
+IMAP_PORT = 993
+SEARCH_QUERY = "Tagesbericht"
+CSV_COLUMN_NAME = "Energiemenge in kWh"
+INPUT_NUMBER_ENTITY = "input_number.daily_energy"
+NTFY_URL = "https://ntfy.sh/mytopic" # optionally define a ntfy.sh webhook for getting push notifications on errors
 
 class EnergyConsumption(hass.Hass):
     def initialize(self):
         self.log("Hello from Energy Consumption App")
-        self.check_email({})
-        self.run_every(self.check_email, "now", 3600)
+        # self.check_email({})
+        self.run_daily(self.check_email, "13:30:00")
 
     def check_email(self, kwargs):
         self.log("now checking...")
-        mail = imaplib.IMAP4_SSL("imap.gmail.com", 993)
-        mail.login(self.args.get("username"), self.args.get("password"))
-        mail.select("INBOX")
-        _, data = mail.search(None, '(UNSEEN SUBJECT "Tagesbericht")')
-        for num in data[0].split():
+        try:
+            mail = imaplib.IMAP4_SSL(IMAP_SERVER, IMAP_PORT)
+            mail.login(self.args.get("username"), self.args.get("password"))
+            mail.select("INBOX")
+            _, data = mail.search(None, f'(UNSEEN SUBJECT "{SEARCH_QUERY}")')
+            message_ids = data[0].split()
+            message_count = len(message_ids)
+            if message_count != 1:
+                raise Exception(f"Unexpected email count: {message_count}")
+            message_id = message_ids[0]
             self.log("found email")
-            _, msg_data = mail.fetch(num, "(RFC822)")
+            _, msg_data = mail.fetch(message_id, "(RFC822)")
             msg = email.message_from_bytes(msg_data[0][1])
             self.log(f"Subject: {str(make_header(decode_header(msg['Subject'])))}")
+            total = 0.0
             for part in msg.walk():
                 filename = part.get_filename()
                 if not filename or not filename.lower().endswith(".csv"):
@@ -27,26 +41,28 @@ class EnergyConsumption(hass.Hass):
                 self.log(f"Filename: {filename}")
                 body = part.get_payload(decode=True)
                 reader = csv.DictReader(io.StringIO(body.decode()), delimiter=";")
-                total = 0.0
                 for row in reader:
-                    try:
-                        value = row["Energiemenge in kWh"].replace(",", ".")
-                        total += float(value)
-                    except (IndexError, ValueError):
-                        self.log(f"Skipping invalid row: {row}")
-                        continue
-                self.log(f"Total consumption = {total}")
-                self.call_service(
-                    "input_number/set_value",
-                    entity_id = "input_number.daily_energy",
-                    value = total
-                )
-                self.log("resetting sensor again")
-                self.call_service(
-                    "input_number/set_value",
-                    entity_id = "input_number.daily_energy",
-                    value = 0
-                )
-            mail.store(num, '+FLAGS', '\\Seen')
-        mail.logout()
-        self.log("completed")
+                    value = row[CSV_COLUMN_NAME].replace(",", ".")
+                    total += float(value)
+                break
+            mail.store(message_id, '+FLAGS', '\\Seen')
+            mail.logout()
+            if not (1.0 < total < 100.0):
+                raise Exception(f"Unexpected energy value count: {total}")
+            self.log(f"Total consumption = {total}")
+            self.call_service(
+                "input_number/set_value",
+                entity_id = INPUT_NUMBER_ENTITY,
+                value = total
+            )
+            self.log("resetting sensor again")
+            self.call_service(
+                "input_number/set_value",
+                entity_id = INPUT_NUMBER_ENTITY,
+                value = 0
+            )
+        except Exception as e:
+            self.log(f"Email check failed: {e}", level="ERROR")
+            # requests.post(NTFY_URL, data = "Appdaemon error") # optionally send notification via ntfy.sh
+        else:
+            self.log("completed")
