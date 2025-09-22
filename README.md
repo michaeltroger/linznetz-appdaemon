@@ -15,6 +15,7 @@ It works as follows:
 - calculates the daily consumption
 - sends the calculated value to Home Assistant
 - marks the email as read
+- Uses ntfy.sh to send a push notification if there was an issue
 
 Known issues:
 - The emails only include data of the day before yesterday. Home Assistant therefore shows 2 day old data as today's data
