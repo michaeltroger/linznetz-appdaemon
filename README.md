@@ -7,6 +7,7 @@ Pre setup needed:
 - Collecting 15min data is enabled 
 - Daily email report is enabled (you will need access to the target mail account on the AppDaemon server)
 - Home assistant up and running and input number created (more to that later)
+- Ntfy.sh is set up for push notifications 
   
 It works as follows:
 - Periodically checks emails
